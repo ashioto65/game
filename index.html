@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STARSHIP CO-OP v5.1 - DEEP TACTICAL CONSOLE</title>
+<style>
+  :root {
+    --bg: #05080f;
+    --panel: #0c1322;
+    --sub: #080d18;
+    --border: #1f304d;
+    --border-hi: #38bdf8;
+    --text: #dce7f5;
+    --muted: #7c93b5;
+    --accent: #38bdf8;
+    --bus-a: #f59e0b;
+    --bus-b: #a855f7;
+    --danger: #f43f5e;
+    --ok: #10b981;
+    --warn: #eab308;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.38;
+    padding: 8px 10px;
+  }
+  .mono { font-family: var(--mono); }
+  .hidden { display: none !important; }
+  .container { max-width: 1420px; margin: 0 auto; }
+
+  button {
+    background: #131f36;
+    color: var(--text);
+    border: 1px solid #2b4269;
+    border-radius: 4px;
+    padding: 6px 9px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  button:hover:not(:disabled) { background: #1c2e4f; border-color: var(--accent); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.primary { background: #0369a1; border-color: #38bdf8; font-weight: bold; }
+  button.primary:hover:not(:disabled) { background: #0284c7; }
+  button.danger { background: #9f1239; border-color: #fb7185; font-weight: bold; }
+  button.selected { background: #0c4a6e; border-color: #7dd3fc; box-shadow: inset 0 0 0 1px #7dd3fc; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px 10px;
+  }
+  .sec-head {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+    margin-bottom: 7px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 8px;
+  }
+  .topbar h1 { font-family: var(--mono); font-size: 14px; color: var(--accent); letter-spacing: 0.08em; }
+  .tag-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .tag {
+    font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 3px;
+    background: #111c33; border: 1px solid var(--border); color: var(--text);
+  }
+  .tag.hi { border-color: var(--accent); color: var(--accent); font-weight: bold; }
+  .tag.err { border-color: var(--danger); background: #3b0816; color: #fecdd3; font-weight: bold; }
+  .tag.warn { border-color: var(--warn); background: #302006; color: #fef08a; font-weight: bold; }
+  .tag.ok { border-color: var(--ok); background: #052e23; color: #a7f3d0; font-weight: bold; }
+
+  .lobby { max-width: 740px; margin: 24px auto; padding: 16px; }
+  .lobby h2 { font-size: 13px; color: var(--accent); margin: 12px 0 6px; border-bottom: 1px solid var(--border); padding-bottom: 3px; }
+  .choice-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .choice-row button { flex: 1; min-width: 155px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .choice-row button small { font-size: 11px; color: var(--muted); }
+  .url-box { display: flex; gap: 6px; margin-top: 6px; }
+  .url-box input {
+    flex: 1; background: #05080f; color: var(--accent); font-family: var(--mono);
+    border: 1px solid var(--border); border-radius: 4px; padding: 7px 9px; font-size: 12px;
+  }
+
+  .alert-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+
+  .telemetry-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .t-cell {
+    background: var(--sub);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-family: var(--mono);
+  }
+  .t-cell.danger { border-color: var(--danger); background: #210912; }
+  .t-cell.warn { border-color: var(--warn); background: #1f1707; }
+  .t-cell.ok { border-color: #166534; }
+  .t-lbl { font-size: 10px; color: var(--muted); display: flex; justify-content: space-between; }
+  .t-val { font-size: 17px; font-weight: bold; color: #fff; margin: 2px 0; }
+  .t-sub { font-size: 10.5px; color: #94a3b8; }
+
+  .console-grid {
+    display: grid;
+    grid-template-columns: 1.65fr 0.85fr;
+    gap: 8px;
+    align-items: start;
+  }
+  @media (max-width: 1020px) { .console-grid { grid-template-columns: 1fr; } }
+
+  .sensor-pair {
+    display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 7px; margin-bottom: 8px;
+  }
+  @media (max-width: 720px) { .sensor-pair { grid-template-columns: 1fr; } }
+  .sensor-box {
+    background: var(--sub); border: 1px solid var(--border); border-radius: 4px; padding: 8px;
+  }
+  .sensor-box.crit { border-color: var(--danger); background: #1e0a12; }
+  .sensor-box.warn { border-color: var(--warn); background: #1c1507; }
+  .sensor-box.safe { border-color: var(--ok); background: #071e18; }
+  .spec-code {
+    display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: bold;
+    padding: 1px 6px; border-radius: 3px; background: #1e293b; border: 1px solid var(--accent); color: #7dd3fc;
+  }
+  .dir-tag {
+    display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: bold;
+    padding: 1px 6px; border-radius: 3px; background: #9f1239; color: #fff;
+  }
+
+  .bridge-controls { display: grid; gap: 8px; }
+  .dir-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  .move-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .subsys-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+  @media (max-width: 760px) {
+    .dir-grid { grid-template-columns: repeat(2, 1fr); }
+    .move-grid { grid-template-columns: repeat(2, 1fr); }
+    .subsys-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .c-btn {
+    text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 6px 7px;
+  }
+  .c-btn strong { font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .c-btn small { font-size: 10.5px; color: var(--muted); line-height: 1.25; }
+
+  .eng-top-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 7px; margin-bottom: 8px;
+  }
+  @media (max-width: 860px) { .eng-top-grid { grid-template-columns: 1fr; } }
+  .matrix-table {
+    width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px;
+  }
+  .matrix-table th, .matrix-table td {
+    border: 1px solid var(--border); padding: 3px 5px; text-align: left;
+  }
+  .matrix-table th { background: #111c33; color: var(--muted); }
+
+  .bus-meter {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 7px; border-radius: 4px; margin-bottom: 5px;
+    font-family: var(--mono); font-size: 11.5px; background: #070b14; border: 1px solid var(--border);
+  }
+  .bus-meter.bus-a { border-left: 4px solid var(--bus-a); }
+  .bus-meter.bus-b { border-left: 4px solid var(--bus-b); }
+  .bus-meter.over { background: #360814; border-color: var(--danger); color: #fecdd3; font-weight: bold; }
+
+  .freq-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 5px; }
+  .freq-row button { font-family: var(--mono); font-weight: bold; padding: 6px 4px; }
+
+  .valve-lamps { display: flex; gap: 4px; flex-wrap: wrap; }
+  .vlamp {
+    font-family: var(--mono); font-size: 11px; padding: 2px 5px; border-radius: 3px; border: 1px solid var(--border);
+  }
+  .vlamp.on { background: #064e3b; border-color: var(--ok); color: #a7f3d0; font-weight: bold; }
+  .vlamp.off { background: #1e293b; color: #94a3b8; }
+  .lever-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-top: 5px; }
+  .lever-grid button { font-family: var(--mono); font-size: 10.5px; padding: 4px; }
+
+  .eng-alloc-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px;
+  }
+  @media (max-width: 760px) { .eng-alloc-grid { grid-template-columns: 1fr; } }
+  .bus-group {
+    background: var(--sub); border: 1px solid var(--border); border-radius: 4px; padding: 7px;
+  }
+  .bus-group.a-col { border-top: 3px solid var(--bus-a); }
+  .bus-group.b-col { border-top: 3px solid var(--bus-b); }
+  .p-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    padding: 5px 6px; margin-bottom: 5px; background: #10192b; border: 1px solid #1e2f4d; border-radius: 4px;
+  }
+  .p-row:last-child { margin-bottom: 0; }
+  .p-info strong { font-size: 12px; display: block; }
+  .p-info small { font-size: 10.5px; color: var(--muted); display: block; }
+  .p-ctrl { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  .p-ctrl button { width: 26px; height: 26px; padding: 0; font-family: var(--mono); font-weight: bold; font-size: 14px; }
+  .p-num { font-family: var(--mono); font-size: 15px; font-weight: bold; min-width: 18px; text-align: center; color: var(--accent); }
+
+  .right-stack { display: flex; flex-direction: column; gap: 8px; }
+  .sync-box {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--sub); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; margin-bottom: 7px;
+    font-family: var(--mono); font-size: 12px;
+  }
+  .log-scroll {
+    max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
+  }
+  .log-item {
+    background: var(--sub); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    border-radius: 4px; padding: 6px 8px; font-family: var(--mono); font-size: 11px; white-space: pre-line;
+  }
+  .log-item.danger { border-left-color: var(--danger); background: #1c0911; }
+  .log-item.warn { border-left-color: var(--warn); }
+  .log-head { font-weight: bold; color: var(--accent); margin-bottom: 2px; }
+
+  .mini-chat { display: flex; flex-direction: column; gap: 5px; }
+  .chat-box {
+    max-height: 115px; overflow-y: auto; background: var(--sub); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px; display: flex; flex-direction: column; gap: 4px; font-size: 11.5px;
+  }
+  .cmsg.me { color: #7dd3fc; }
+  .cmsg.pt { color: #fde68a; }
+  .chat-form { display: flex; gap: 5px; }
+  .chat-form input {
+    flex: 1; background: #05080f; color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; padding: 5px 7px; font-size: 12px;
+  }
+
+  .result-box {
+    border: 2px solid var(--ok); background: #05261e; border-radius: 6px; padding: 14px; margin-bottom: 10px;
+  }
+  .result-box.lose { border-color: var(--danger); background: #2b0711; }
+  .hist-wrap { overflow-x: auto; background: rgba(5,8,15,0.92); border-radius: 4px; padding: 8px; margin: 10px 0; }
+  .hist-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; min-width: 1060px; }
+  .hist-table th, .hist-table td { padding: 5px 6px; border-bottom: 1px solid var(--border); text-align: left; }
+  .hist-table th { color: var(--accent); }
+  .rematch-box {
+    background: rgba(5,8,15,0.88); border: 1px solid var(--border); border-radius: 5px; padding: 10px; max-width: 760px; margin: 0 auto;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <h1>STARSHIP CO-OP // DEEP TACTICAL CONSOLE v5.1</h1>
+    <div class="tag-row">
+      <span id="top-role" class="tag hi hidden">-</span>
+      <span id="top-diff" class="tag hidden">-</span>
+      <span id="net-badge" class="tag ok hidden">SYNC OK</span>
+      <button id="btn-resync" class="hidden" style="padding:2px 8px; font-size:11px;" onclick="manualResync()">通信を再同期</button>
+    </div>
+  </div>
+
+  <!-- ロビー -->
+  <div id="lobby" class="panel lobby">
+    <div id="conn-status" class="tag warn" style="display:inline-block; margin-bottom:8px;">通信チャンネル初期化中...</div>
+
+    <div id="host-setup" class="hidden">
+      <h2>1. 難易度を選択</h2>
+      <div class="choice-row">
+        <button id="btn-diff-easy" onclick="selectDiff('easy')">
+          <strong>易しい（練習）</strong>
+          <small>18光年 / 上限なし / 電力5 / バス上限3 / 副脅威35%</small>
+        </button>
+        <button id="btn-diff-normal" onclick="selectDiff('normal')">
+          <strong>普通</strong>
+          <small>24光年 / 12T / 電力5 / バス上限2 / 副脅威75%</small>
+        </button>
+        <button id="btn-diff-hard" class="selected" onclick="selectDiff('hard')">
+          <strong>難しい（極限思考）</strong>
+          <small>28光年 / 12T / 電力4 / バス上限2 / 副脅威100%</small>
+        </button>
+      </div>
+
+      <h2>2. ホスト（あなた）の担当を選択</h2>
+      <div class="choice-row">
+        <button id="btn-role-bridge" class="selected" onclick="selectHostRole('bridge')">
+          <strong>操縦室（BRIDGE）</strong>
+          <small>主副脅威・波形コード・4方位姿勢・6航行・外部サブシステム</small>
+        </button>
+        <button id="btn-role-engine" onclick="selectHostRole('engine')">
+          <strong>機関室（ENGINE）</strong>
+          <small>周波数照合表・A/Bバス制約・4面シールド・4バルブ冷却・安定度</small>
+        </button>
+      </div>
+
+      <h2>3. 招待URLを相棒へ渡す</h2>
+      <p style="font-size:11.5px; color:var(--muted);">時間制限はありません。通信データを軽量化し何ターン進んでも同期が止まらない設計です。</p>
+      <div class="url-box">
+        <input id="invite-url" type="text" readonly value="生成中...">
+        <button class="primary" onclick="copyInviteUrl()">URLコピー</button>
+      </div>
+      <div id="copy-msg" style="font-size:11px; color:var(--ok); margin-top:4px; min-height:1.2em;"></div>
+    </div>
+
+    <div id="guest-setup" class="hidden">
+      <h2>ホストの宇宙船に接続中</h2>
+      <p style="color:var(--muted); margin-bottom:10px;">ホストが待機画面を開いていれば数秒で同期されます。</p>
+      <button class="primary" onclick="sendJoinSignal()">接続信号を再送信</button>
+    </div>
+  </div>
+
+  <!-- ゲーム画面 -->
+  <div id="game" class="hidden">
+    <!-- リザルト＆再プレイ設定 -->
+    <div id="result-box" class="result-box hidden">
+      <div style="text-align:center;">
+        <h2 id="result-title" style="font-size:18px; color:#fff; margin-bottom:4px;"></h2>
+        <p id="result-desc" style="font-size:13px;"></p>
+      </div>
+      <div class="hist-wrap">
+        <table class="hist-table">
+          <thead>
+            <tr>
+              <th>T</th>
+              <th>主脅威(方位/波形)</th>
+              <th>副脅威</th>
+              <th>操縦(航行/姿勢/外部)</th>
+              <th>シ面(正/左/右/背)+周</th>
+              <th>A/B負荷</th>
+              <th>冷/排/V</th>
+              <th>修(船/酸/系)</th>
+              <th>被害計算内訳</th>
+              <th>船/酸/熱/安/残</th>
+            </tr>
+          </thead>
+          <tbody id="hist-body"></tbody>
+        </table>
+      </div>
+
+      <div id="host-rematch" class="rematch-box hidden">
+        <div class="sec-head"><span>次回ミッション設定（ホスト選択）</span><span>難易度と担当を変更して再プレイ可</span></div>
+        <div class="choice-row">
+          <button id="rm-diff-easy" onclick="setRematchDiff('easy')">易しい（練習）</button>
+          <button id="rm-diff-normal" onclick="setRematchDiff('normal')">普通</button>
+          <button id="rm-diff-hard" onclick="setRematchDiff('hard')">難しい</button>
+        </div>
+        <div class="choice-row">
+          <button id="rm-role-bridge" onclick="setRematchRole('bridge')">ホスト：操縦室</button>
+          <button id="rm-role-engine" onclick="setRematchRole('engine')">ホスト：機関室</button>
+        </div>
+        <button class="primary" style="width:100%; padding:9px;" onclick="startRematch()">この設定で再プレイ開始</button>
+      </div>
+      <div id="guest-rematch" class="hidden" style="text-align:center; padding:8px; color:#cbd5e1;">
+        ホストが次の難易度と担当を選択しています...
+      </div>
+    </div>
+
+    <div id="alert-grid" class="alert-grid hidden"></div>
+    <div id="telemetry-strip" class="telemetry-strip"></div>
+
+    <div class="console-grid">
+      <!-- 左：担当別操作パネル -->
+      <div class="panel">
+        <!-- 操縦室パネル -->
+        <div id="panel-bridge" class="hidden">
+          <div class="sec-head">
+            <span>BRIDGE // 外部センサー・航行・外部サブシステム</span>
+            <span id="bridge-stance-cur" class="mono">現在姿勢: 正面</span>
+          </div>
+
+          <div class="sensor-pair">
+            <div id="main-threat-box" class="sensor-box">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px; margin-bottom:4px;">
+                <strong id="mt-name" style="font-size:14px;">-</strong>
+                <div>
+                  <span id="mt-dir" class="dir-tag">-</span>
+                  <span id="mt-spec" class="spec-code">-</span>
+                </div>
+              </div>
+              <div id="mt-desc" style="font-size:11.5px; color:#cbd5e1;">-</div>
+            </div>
+
+            <div id="sub-threat-box" class="sensor-box">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <strong id="st-name" style="font-size:13px;">副脅威：-</strong>
+                <span id="st-badge" class="tag">-</span>
+              </div>
+              <div id="st-desc" style="font-size:11.5px; color:#cbd5e1; margin-bottom:5px;">-</div>
+              <div style="border-top:1px dashed var(--border); padding-top:4px; font-size:11px; color:#93c5fd;">
+                <strong>次T観測：</strong><span id="next-forecast" class="mono">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bridge-controls">
+            <div>
+              <div class="sec-head">
+                <span>AXIS-1 // 進入姿勢（シールド主防御面の指向）</span>
+                <span id="stance-rule-txt" style="color:var(--muted); font-weight:normal;">不一致でシールド半減／変更で距離-1＆熱+6</span>
+              </div>
+              <div class="dir-grid">
+                <button class="c-btn" id="st-front" onclick="pickStance('front')">
+                  <strong>正面防御 <span id="st-m-front"></span></strong>
+                  <small id="st-c-front">-</small>
+                </button>
+                <button class="c-btn" id="st-port" onclick="pickStance('port')">
+                  <strong>左舷防御 <span id="st-m-port"></span></strong>
+                  <small id="st-c-port">-</small>
+                </button>
+                <button class="c-btn" id="st-starboard" onclick="pickStance('starboard')">
+                  <strong>右舷防御 <span id="st-m-starboard"></span></strong>
+                  <small id="st-c-starboard">-</small>
+                </button>
+                <button class="c-btn" id="st-back" onclick="pickStance('back')">
+                  <strong>背面防御 <span id="st-m-back"></span></strong>
+                  <small id="st-c-back">-</small>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div class="sec-head">
+                <span>AXIS-2 // 推進・航行モード</span>
+                <span style="color:var(--muted); font-weight:normal;">距離・熱・回避特性・安定度負荷の選択</span>
+              </div>
+              <div class="move-grid">
+                <button class="c-btn" id="mv-overdrive" onclick="pickMove('overdrive')">
+                  <strong>オーバードライブ</strong>
+                  <small>距離-4 / 熱+42 / 安定度-20 / 回避不可</small>
+                </button>
+                <button class="c-btn" id="mv-full" onclick="pickMove('full')">
+                  <strong>全速前進</strong>
+                  <small>距離-3 / 熱+26 / 重力井戸突破</small>
+                </button>
+                <button class="c-btn" id="mv-normal" onclick="pickMove('normal')">
+                  <strong>通常航行</strong>
+                  <small>距離-2 / 熱+10 / 標準巡航</small>
+                </button>
+                <button class="c-btn" id="mv-drift" onclick="pickMove('drift')">
+                  <strong>慣性ドリフト</strong>
+                  <small>姿勢維持時 距離-1・熱0（変更時0・熱+8）被害+20%</small>
+                </button>
+                <button class="c-btn" id="mv-evade" onclick="pickMove('evade')">
+                  <strong>回避機動</strong>
+                  <small>距離-1 / 熱-5 / 運動系半減・小惑星0・漏れ防止（熱線/電磁無効）</small>
+                </button>
+                <button class="c-btn" id="mv-defend" onclick="pickMove('defend')">
+                  <strong>緊急停止・防御</strong>
+                  <small>距離0 / 熱-16 / 全ダメ半減・漏れ防止 / 次T電力+1</small>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div class="sec-head">
+                <span>AXIS-3 // 外部サブシステム（1種のみ稼働・機関室への副作用あり）</span>
+              </div>
+              <div class="subsys-grid">
+                <button class="c-btn" id="sub-none" onclick="pickSubsys('none')">
+                  <strong>標準運用</strong>
+                  <small>特殊効果・副作用なし</small>
+                </button>
+                <button class="c-btn" id="sub-focus" onclick="pickSubsys('focus')">
+                  <strong>偏向集中</strong>
+                  <small>完全一致シ効率1.5倍 / 距離-1</small>
+                </button>
+                <button class="c-btn" id="sub-vent" onclick="pickSubsys('vent')">
+                  <strong>外気ベント</strong>
+                  <small>未排熱全破棄＆熱-8 / 酸素-8＆防御回避半減無効</small>
+                </button>
+                <button class="c-btn" id="sub-scan" onclick="pickSubsys('scan')">
+                  <strong>精密スキャン</strong>
+                  <small>次T主副脅威・方位・波形を100%確定 / 熱+6</small>
+                </button>
+                <button class="c-btn" id="sub-boost" onclick="pickSubsys('boost')">
+                  <strong>スラスター補助</strong>
+                  <small>姿勢変更コスト0＆距離+1 / 機関Aバス負荷+1</small>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 機関室パネル -->
+        <div id="panel-engine" class="hidden">
+          <div class="sec-head">
+            <span>ENGINE // 周波数照合・A/B配電バス・4バルブ冷却・部位修理</span>
+            <span id="eng-pow-summary" class="mono" style="color:#fff;">残電力 4 / 4</span>
+          </div>
+
+          <div class="eng-top-grid">
+            <div class="sensor-box">
+              <div class="sec-head" style="margin-bottom:4px;"><span>波形⇔変調周波数 照合表</span><span>不一致で半減</span></div>
+              <table class="matrix-table">
+                <thead><tr><th>観測コード</th><th>物理分類</th><th>適合変調</th></tr></thead>
+                <tbody id="freq-matrix-body"></tbody>
+              </table>
+              <div class="freq-row">
+                <button id="frq-alpha" onclick="pickFreq('alpha')">α 変調</button>
+                <button id="frq-beta" onclick="pickFreq('beta')">β 変調</button>
+                <button id="frq-gamma" onclick="pickFreq('gamma')">γ 変調</button>
+              </div>
+            </div>
+
+            <div class="sensor-box">
+              <div class="sec-head" style="margin-bottom:4px;"><span>A/B配電バス負荷</span><span id="bus-limit-txt">安全上限: 2</span></div>
+              <div id="bus-a-meter" class="bus-meter bus-a">
+                <span>BUS-A 負荷</span>
+                <span id="bus-a-val">0 / 2</span>
+              </div>
+              <div id="bus-b-meter" class="bus-meter bus-b">
+                <span>BUS-B 負荷</span>
+                <span id="bus-b-val">0 / 2</span>
+              </div>
+              <div style="font-size:10.5px; color:var(--muted); line-height:1.3;">
+                安全上限超過で<strong>過負荷</strong>（熱+12・安定-15・次T該当バス上限1）。<br>
+                操縦室のスラスター補助やプラズマ放電で外部負荷+1が乗るため要確認。
+              </div>
+            </div>
+
+            <div class="sensor-box">
+              <div class="sec-head" style="margin-bottom:4px;">
+                <span>4バルブ冷却同調</span>
+                <span id="valve-eff-badge" class="tag warn">一致0/4</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <span class="mono" style="font-size:10.5px; color:var(--muted);">現在</span>
+                <div id="valves-cur" class="valve-lamps"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <span class="mono" style="font-size:10.5px; color:var(--muted);">目標</span>
+                <div id="valves-tgt" class="valve-lamps"></div>
+              </div>
+              <div class="lever-grid">
+                <button id="lv-0" onclick="flipLever(0)">L1: A+B反転</button>
+                <button id="lv-1" onclick="flipLever(1)">L2: B+C反転</button>
+                <button id="lv-2" onclick="flipLever(2)">L3: C+D反転</button>
+                <button id="lv-3" onclick="flipLever(3)">L4: A+C+D反転</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="eng-alloc-grid">
+            <div class="bus-group a-col">
+              <div class="sec-head" style="color:var(--bus-a);">
+                <span>BUS-A 配電系統</span>
+                <span id="bus-a-lock-tag" class="mono"></span>
+              </div>
+              <div class="p-row">
+                <div class="p-info"><strong>正面シールド (A)</strong><small id="sh-note-1">完全一致で被害-9（ズレ/周波数不一致で各半減）</small></div>
+                <div class="p-ctrl">
+                  <button onclick="adjPow('shFront', -1)">-</button>
+                  <span class="p-num" id="p-shFront">0</span>
+                  <button onclick="adjPow('shFront', 1)">+</button>
+                </div>
+              </div>
+              <div class="p-row">
+                <div class="p-info"><strong>右舷シールド (A)</strong><small>右舷方位からの脅威に対応</small></div>
+                <div class="p-ctrl">
+                  <button onclick="adjPow('shStarboard', -1)">-</button>
+                  <span class="p-num" id="p-shStarboard">0</span>
+                  <button onclick="adjPow('shStarboard', 1)">+</button>
+                </div>
+              </div>
+              <div class="p-row">
+                <div class="p-info"><strong>主ループ冷却 (A)</strong><small id="cool-main-desc">熱-12（4一致100% / 3一致60% / 2以下30%）半分は未排熱</small></div>
+                <div class="p-ctrl">
+                  <button onclick="adjPow('coolMain', -1)">-</button>
+                  <span class="p-num" id="p-coolMain">0</span>
+                  <button onclick="adjPow('coolMain', 1)">+</button>
+                </div>
+              </div>
+              <div class="p-row">
+                <div class="p-info"><strong>船体修理 (A)</strong><small id="rep-hull-desc">船体耐久 +5% のみ（放射能霧時は半減）</small></div>
+                <div class="p-ctrl">
+                  <button onclick="adjPow('repHull', -1)">-</button>
+                  <span class="p-num" id="p-repHull">0</span>
+                  <button onclick="adjPow('repHull', 1)">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bus-group b-col">
+              <div class="sec-head" style="color:var(--bus-b);">
+                <span>BUS-B 配電系統</span>
+                <span id="bus-b-lock-tag" class="mono"></span>
+              </div>
+              <div class="p-row">
+                <div class="p-info"><strong>左舷シールド (B)</strong><small>左舷方位からの脅威に対応</small></div>
+                <div class="p-ctrl">
+                  <button onclick="adjPow('shPort', -1)">-</button>
+                  <span class="p-num" id="p-shPort">0</span>
+                  <button onclick="adjPow('shPort', 1)">+</button>
+                </div>
+              </div>
+              <div class="p-row">
+                <div class="p-info"><strong>背面シールド (B)</strong><small>背面方位からの脅威に対応</small></div>
+                <div class="p-ctrl">
+                  <button onclick="adjPow('shBack', -1)">-</button>
+                  <span class="p-num" id="p-shBack">0</span>
+                  <button onclick="adjPow('shBack', 1)">+</button>
+                </div>
+              </div>
+              <div class="p-row">
+                <div class="p-info"><strong>排熱放出・補助冷却 (B)</strong><small>未排熱バッファ完全破棄＋熱-4（未処理は翌T逆流）</small></div>
+                <div class="p-ctrl">
+                  <button onclick="adjPow('exhaust', -1)">-</button>
+                  <span class="p-num" id="p-exhaust">0</span>
+                  <button onclick="adjPow('exhaust', 1)">+</button>
+                </div>
+              </div>
+              <div class="p-row">
+                <div class="p-info"><strong>酸素タンク修理 (B)</strong><small id="rep-o2-desc">酸素 +7% ＆ 持続酸素漏れ修復</small></div>
+                <div class="p-ctrl">
+                  <button onclick="adjPow('repO2', -1)">-</button>
+                  <span class="p-num" id="p-repO2">0</span>
+                  <button onclick="adjPow('repO2', 1)">+</button>
+                </div>
+              </div>
+              <div class="p-row">
+                <div class="p-info"><strong>系統安定・電力修復 (B)</strong><small>安定度+25%・電力損傷＆バス制限解除／完全正常なら次T電力+1</small></div>
+                <div class="p-ctrl">
+                  <button onclick="adjPow('repSys', -1)">-</button>
+                  <span class="p-num" id="p-repSys">0</span>
+                  <button onclick="adjPow('repSys', 1)">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右：同期確定・計算内訳ログ・補助メモチャット -->
+      <div class="right-stack">
+        <div class="panel">
+          <div class="sec-head"><span>SYNC // 行動確定</span><span>取消制限なし</span></div>
+          <div class="sync-box">
+            <span id="pt-role-lbl">相棒：</span>
+            <span id="pt-status-tag" class="tag">検討中</span>
+          </div>
+          <button id="btn-lock" class="primary" style="width:100%; padding:10px; font-size:13px;" onclick="toggleLock()">
+            この作戦で行動を確定する
+          </button>
+        </div>
+
+        <div class="panel">
+          <div class="sec-head"><span>LOG // ターン結果・計算内訳（積み上げ）</span></div>
+          <div id="log-list" class="log-scroll"></div>
+        </div>
+
+        <div class="panel mini-chat">
+          <div class="sec-head" style="margin-bottom:4px;"><span>COMMS // 補助テキストログ（任意）</span></div>
+          <div id="chat-box" class="chat-box"></div>
+          <form class="chat-form" onsubmit="sendChat(event)">
+            <input id="chat-input" type="text" placeholder="コードやメモを送る場合に入力..." autocomplete="off">
+            <button type="submit">送信</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const RELAY_BASE = 'https://ntfy.sh/';
+const DIRS = ['front', 'port', 'starboard', 'back'];
+const DIR_JP = { front: '正面', port: '左舷', starboard: '右舷', back: '背面', none: 'なし' };
+const FREQ_JP = { alpha: 'α変調', beta: 'β変調', gamma: 'γ変調' };
+const MOVE_JP = {
+  overdrive: 'オーバードライブ', full: '全速前進', normal: '通常航行',
+  drift: '慣性ドリフト', evade: '回避機動', defend: '緊急停止・防御'
+};
+const SUBSYS_JP = {
+  none: '標準', focus: '偏向集中', vent: '外気ベント', scan: '精密スキャン', boost: 'スラスター補助'
+};
+
+const SPECTRA = [
+  { id: 'kinetic', code: 'K-7', label: '運動衝撃波' },
+  { id: 'thermal', code: 'T-4', label: '高熱線放射' },
+  { id: 'em',      code: 'E-9', label: '電磁粒子束' }
+];
+
+const DIFFS = {
+  easy: {
+    name: '易しい（練習）', targetDist: 18, maxTurns: 0, basePower: 5, busSafeLimit: 3,
+    subThreatChance: 0.35, stanceDistCost: 0, stanceHeatCost: 4,
+    shieldBase: 11, coolMain: 16, exhaustRatio: 0.25,
+    repHull: 8, repO2: 12, o2Drain: 10, o2LeakStep: 4
+  },
+  normal: {
+    name: '普通', targetDist: 24, maxTurns: 12, basePower: 5, busSafeLimit: 2,
+    subThreatChance: 0.75, stanceDistCost: 1, stanceHeatCost: 4,
+    shieldBase: 10, coolMain: 14, exhaustRatio: 0.5,
+    repHull: 6, repO2: 9, o2Drain: 11, o2LeakStep: 5
+  },
+  hard: {
+    name: '難しい', targetDist: 28, maxTurns: 12, basePower: 4, busSafeLimit: 2,
+    subThreatChance: 1.0, stanceDistCost: 1, stanceHeatCost: 6,
+    shieldBase: 9, coolMain: 12, exhaustRatio: 0.5,
+    repHull: 5, repO2: 7, o2Drain: 12, o2LeakStep: 6
+  }
+};
+
+const MAIN_THREATS = [
+  {
+    id: 'meteor', name: '高速度隕石群', level: 'crit', spec: 'kinetic', baseDmg: 38,
+    desc: '基本ダメ38。回避または防御で半減。運動衝撃系のため適合変調と姿勢一致シールドが有効。'
+  },
+  {
+    id: 'asteroid', name: '密集小惑星帯', level: 'warn', spec: 'kinetic', baseDmg: 30,
+    desc: '基本ダメ30。回避機動で完全0。全速/OD時はダメ+12増加。'
+  },
+  {
+    id: 'debris', name: '鋭利デブリ嵐', level: 'warn', spec: 'kinetic', baseDmg: 26,
+    desc: '基本ダメ26＆持続酸素漏れ発生。回避で半減＆漏れ防止。防御でも漏れ防止。'
+  },
+  {
+    id: 'flare', name: 'コロナ質量放出(フレア)', level: 'crit', spec: 'thermal', baseDmg: 22,
+    desc: '基本ダメ22＆熱+34。回避機動は無効（防御のみダメ半減）。一致シールド1につき熱防御-12。'
+  },
+  {
+    id: 'emp', name: '高圧電磁パルス波', level: 'crit', spec: 'em', baseDmg: 24,
+    desc: '基本ダメ24＆リアクター安定度-18（一致シールド1につき安定低下-6軽減）。回避無効。'
+  },
+  {
+    id: 'calm', name: '静穏宙域', level: 'safe', spec: null, baseDmg: 0,
+    desc: '主脅威なし。排熱・系統安定・距離稼ぎの好機（ただし副脅威に注意）。'
+  }
+];
+
+const SUB_THREATS = [
+  { id: 'none', name: '異常なし', kind: 'safe', desc: '副次的な外部異常は検出されていません。' },
+  { id: 'shrapnel', name: '側背散弾デブリ', kind: 'warn', hasDir: true, baseDmg: 16, desc: '主脅威とは別方位から基本ダメ16の飛来物。該当方位シールド（周波数問わず半効以上）で軽減可。' },
+  { id: 'plasma_a', name: 'プラズマ放電(A系統干渉)', kind: 'crit', desc: '機関室BUS-Aに外部負荷+1。A系統に過配分すると過負荷が発生。' },
+  { id: 'plasma_b', name: 'プラズマ放電(B系統干渉)', kind: 'crit', desc: '機関室BUS-Bに外部負荷+1。B系統に過配分すると過負荷が発生。' },
+  { id: 'rad_fog', name: '高放射能星雲', kind: 'warn', desc: 'このターン酸素自然消費+4 ＆ 船体修理の回復量が半減。' },
+  { id: 'grav_well', name: '局所重力井戸', kind: 'warn', desc: '全速前進・オーバードライブ以外だと距離が+1光年押し戻される。' },
+  { id: 'mag_noise', name: '磁気ノイズ嵐', kind: 'warn', desc: '機関室の一部数値が16進数・不鮮明表示化し次T予測の精度が低下。' }
+];
+
+const myClientId = 'c51-' + Math.random().toString(36).slice(2, 10);
+let roomId = '';
+let eventSource = null;
+let joinTimer = null;
+let heartbeatTimer = null;
+
+let isHost = false;
+let selectedDiff = 'hard';
+let hostRole = 'bridge';
+let rematchDiff = 'hard';
+let rematchHostRole = 'bridge';
+let myRole = 'bridge';
+let gameStarted = false;
+
+let state = null;
+let localLogs = [];
+let localHistory = [];
+let lastAppliedTurn = 0;
+
+let myStance = 'front';
+let myMove = 'normal';
+let mySubsys = 'none';
+let myFreq = 'alpha';
+let myPow = emptyPow();
+let myValves = [0, 0, 0, 0];
+
+let myLocked = false;
+let partnerLocked = false;
+let pendingHost = null;
+let pendingGuest = null;
+
+function emptyPow() {
+  return { shFront: 0, shStarboard: 0, coolMain: 0, repHull: 0, shPort: 0, shBack: 0, exhaust: 0, repO2: 0, repSys: 0 };
+}
+function busALoad(p) { return p.shFront + p.shStarboard + p.coolMain + p.repHull; }
+function busBLoad(p) { return p.shPort + p.shBack + p.exhaust + p.repO2 + p.repSys; }
+function sumPow(p) { return busALoad(p) + busBLoad(p); }
+
+// 4KB制限を超えないよう履歴とログを省いたコア状態のみ抽出
+function packCoreState(st) {
+  return {
+    diffKey: st.diffKey,
+    turn: st.turn,
+    maxTurns: st.maxTurns,
+    targetDist: st.targetDist,
+    dist: st.dist,
+    hull: st.hull,
+    o2: st.o2,
+    o2Leak: st.o2Leak,
+    heat: st.heat,
+    pendingExhaust: st.pendingExhaust,
+    stability: st.stability,
+    powerDamaged: st.powerDamaged,
+    busALocked: st.busALocked,
+    busBLocked: st.busBLocked,
+    maxPower: st.maxPower,
+    bonusPower: st.bonusPower,
+    currentStance: st.currentStance,
+    freqMap: st.freqMap,
+    mainThreat: st.mainThreat,
+    subThreat: st.subThreat,
+    nextPrepared: st.nextPrepared,
+    exactScanNext: st.exactScanNext,
+    valveInit: st.valveInit,
+    valveTarget: st.valveTarget,
+    prev: st.prev,
+    gameOver: st.gameOver,
+    win: st.win,
+    failReason: st.failReason
+  };
+}
+
+function randomId(n) {
+  const s = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let r = '';
+  for (let i = 0; i < n; i++) r += s[Math.floor(Math.random() * s.length)];
+  return r;
+}
+
+function init() {
+  const params = new URLSearchParams(window.location.search);
+  const room = params.get('room');
+  if (room) {
+    isHost = false;
+    roomId = room;
+    document.getElementById('guest-setup').classList.remove('hidden');
+    startSSE(() => {
+      setConn('ホストへ接続信号送信中...', 'warn');
+      sendJoinSignal();
+      joinTimer = setInterval(() => {
+        if (!gameStarted) sendJoinSignal();
+        else clearInterval(joinTimer);
+      }, 3000);
+    });
+  } else {
+    isHost = true;
+    roomId = 'starship_v51_' + randomId(12);
+    document.getElementById('host-setup').classList.remove('hidden');
+    const url = window.location.origin + window.location.pathname + '?room=' + roomId;
+    document.getElementById('invite-url').value = url;
+    startSSE(() => setConn('待機中（相棒のURLアクセス待ち）', 'ok'));
+  }
+}
+
+function startSSE(onOpen) {
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource(RELAY_BASE + roomId + '/sse');
+  eventSource.onopen = () => {
+    setNetBadge('SYNC OK', 'ok');
+    if (onOpen) onOpen();
+  };
+  eventSource.onmessage = (e) => {
+    try {
+      const w = JSON.parse(e.data);
+      if (w.event !== 'message' || !w.message) return;
+      const msg = JSON.parse(w.message);
+      if (msg.from === myClientId) return;
+      handleMsg(msg);
+    } catch (err) { console.error(err); }
+  };
+  eventSource.onerror = () => {
+    setNetBadge('再接続中...', 'warn');
+    if (!gameStarted) setConn('通信チャンネル再接続中...', 'warn');
+  };
+}
+
+function setNetBadge(txt, cls) {
+  const el = document.getElementById('net-badge');
+  if (!el) return;
+  el.textContent = txt;
+  el.className = 'tag ' + cls;
+}
+
+async function sendNet(payload) {
+  payload.from = myClientId;
+  try {
+    const res = await fetch(RELAY_BASE + roomId, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) setNetBadge('送信エラー', 'err');
+  } catch (err) {
+    console.error(err);
+    setNetBadge('送信失敗', 'err');
+  }
+}
+
+function startHostHeartbeat() {
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  if (!isHost) return;
+  heartbeatTimer = setInterval(() => {
+    if (!gameStarted || !state) return;
+    sendNet({
+      type: 'hb',
+      t: state.turn,
+      go: state.gameOver,
+      hl: !!pendingHost,
+      gl: !!pendingGuest
+    });
+  }, 25000);
+}
+
+function manualResync() {
+  setNetBadge('同期中...', 'warn');
+  startSSE(() => {
+    if (isHost && state) {
+      const gr = (hostRole === 'bridge') ? 'engine' : 'bridge';
+      const gLogs = (gr === 'bridge') ? state.logsBridge : state.logsEngine;
+      sendNet({
+        type: 'syncState',
+        role: gr,
+        core: packCoreState(state),
+        lastLog: gLogs[0] || null,
+        lastHist: state.history[state.history.length - 1] || null,
+        hl: !!pendingHost
+      });
+      setNetBadge('状態送信完了', 'ok');
+    } else {
+      sendNet({ type: 'resync' });
+    }
+  });
+}
+
+function sendJoinSignal() { sendNet({ type: 'join' }); }
+function setConn(txt, cls) {
+  const el = document.getElementById('conn-status');
+  el.textContent = txt;
+  el.className = 'tag ' + cls;
+}
+
+function selectDiff(d) {
+  selectedDiff = d; rematchDiff = d;
+  ['easy', 'normal', 'hard'].forEach(k => document.getElementById('btn-diff-' + k).classList.toggle('selected', k === d));
+}
+function selectHostRole(r) {
+  hostRole = r; rematchHostRole = r;
+  ['bridge', 'engine'].forEach(k => document.getElementById('btn-role-' + k).classList.toggle('selected', k === r));
+}
+function setRematchDiff(d) { rematchDiff = d; renderRematchUI(); }
+function setRematchRole(r) { rematchHostRole = r; renderRematchUI(); }
+function renderRematchUI() {
+  ['easy', 'normal', 'hard'].forEach(k => document.getElementById('rm-diff-' + k).classList.toggle('selected', k === rematchDiff));
+  ['bridge', 'engine'].forEach(k => document.getElementById('rm-role-' + k).classList.toggle('selected', k === rematchHostRole));
+}
+function copyInviteUrl() {
+  const inp = document.getElementById('invite-url');
+  inp.select();
+  navigator.clipboard.writeText(inp.value).then(() => {
+    document.getElementById('copy-msg').textContent = '招待URLをコピーしました。';
+  });
+}
+
+function makeFreqMap() {
+  const freqs = ['alpha', 'beta', 'gamma'];
+  for (let i = freqs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [freqs[i], freqs[j]] = [freqs[j], freqs[i]];
+  }
+  return { kinetic: freqs[0], thermal: freqs[1], em: freqs[2] };
+}
+
+function applyLeverToArr(arr, idx) {
+  const a = [...arr];
+  if (idx === 0) { a[0] ^= 1; a[1] ^= 1; }
+  else if (idx === 1) { a[1] ^= 1; a[2] ^= 1; }
+  else if (idx === 2) { a[2] ^= 1; a[3] ^= 1; }
+  else { a[0] ^= 1; a[2] ^= 1; a[3] ^= 1; }
+  return a;
+}
+
+function makeValvePuzzle() {
+  const target = [0, 1, 2, 3].map(() => Math.round(Math.random()));
+  let cur = [...target];
+  const steps = 2 + Math.floor(Math.random() * 2);
+  let last = -1;
+  for (let s = 0; s < steps; s++) {
+    let lv = Math.floor(Math.random() * 4);
+    if (lv === last) lv = (lv + 1) % 4;
+    cur = applyLeverToArr(cur, lv);
+    last = lv;
+  }
+  if (cur.every((v, i) => v === target[i])) cur = applyLeverToArr(cur, 0);
+  return { init: cur, target };
+}
+
+function randomDir(exclude) {
+  const pool = exclude ? DIRS.filter(d => d !== exclude) : DIRS;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function generateTurnThreats(diff, forceFirst) {
+  const mtTpl = forceFirst ? MAIN_THREATS[0] : MAIN_THREATS[Math.floor(Math.random() * MAIN_THREATS.length)];
+  const main = {
+    id: mtTpl.id, name: mtTpl.name, level: mtTpl.level,
+    spec: mtTpl.spec, baseDmg: mtTpl.baseDmg,
+    dir: mtTpl.spec ? randomDir() : 'none'
+  };
+
+  let subTpl = SUB_THREATS[0];
+  if (!forceFirst && Math.random() < diff.subThreatChance) {
+    const activeSubs = SUB_THREATS.slice(1);
+    subTpl = activeSubs[Math.floor(Math.random() * activeSubs.length)];
+  } else if (forceFirst && diff.subThreatChance >= 1.0) {
+    subTpl = SUB_THREATS[2];
+  }
+  const sub = {
+    id: subTpl.id, name: subTpl.name, kind: subTpl.kind,
+    baseDmg: subTpl.baseDmg || 0,
+    dir: subTpl.hasDir ? randomDir(main.dir) : 'none'
+  };
+  return { main, sub };
+}
+
+function startNewGame(diffKey, newHostRole) {
+  selectedDiff = diffKey; hostRole = newHostRole;
+  rematchDiff = diffKey; rematchHostRole = newHostRole;
+  myRole = newHostRole;
+  const guestRole = (newHostRole === 'bridge') ? 'engine' : 'bridge';
+  const diff = DIFFS[diffKey];
+  gameStarted = true;
+
+  const t1 = generateTurnThreats(diff, true);
+  const t2 = generateTurnThreats(diff, false);
+  const vp = makeValvePuzzle();
+
+  state = {
+    diffKey,
+    turn: 1,
+    maxTurns: diff.maxTurns,
+    targetDist: diff.targetDist,
+    dist: diff.targetDist,
+    hull: 100,
+    o2: 100,
+    o2Leak: 0,
+    heat: 20,
+    pendingExhaust: 0,
+    stability: 100,
+    powerDamaged: false,
+    busALocked: false,
+    busBLocked: false,
+    maxPower: diff.basePower,
+    bonusPower: 0,
+    currentStance: 'front',
+    freqMap: makeFreqMap(),
+    mainThreat: t1.main,
+    subThreat: t1.sub,
+    nextPrepared: t2,
+    exactScanNext: false,
+    valveInit: vp.init,
+    valveTarget: vp.target,
+    prev: null,
+    logsBridge: [],
+    logsEngine: [],
+    history: [],
+    gameOver: false,
+    win: false,
+    failReason: ''
+  };
+  localLogs = [];
+  localHistory = [];
+  lastAppliedTurn = 0;
+
+  resetChoices();
+  sendNet({ type: 'init', role: guestRole, core: packCoreState(state) });
+  startHostHeartbeat();
+  enterGame();
+  render();
+}
+
+function startRematch() {
+  if (!isHost) return;
+  document.getElementById('chat-box').innerHTML = '';
+  startNewGame(rematchDiff, rematchHostRole);
+}
+
+function enterGame() {
+  document.getElementById('lobby').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+  document.getElementById('panel-bridge').classList.toggle('hidden', myRole !== 'bridge');
+  document.getElementById('panel-engine').classList.toggle('hidden', myRole !== 'engine');
+  document.getElementById('net-badge').classList.remove('hidden');
+  document.getElementById('btn-resync').classList.remove('hidden');
+
+  const diff = DIFFS[state.diffKey];
+  const rEl = document.getElementById('top-role');
+  rEl.classList.remove('hidden');
+  rEl.textContent = myRole === 'bridge' ? 'ROLE: 操縦室 (BRIDGE)' : 'ROLE: 機関室 (ENGINE)';
+  const dEl = document.getElementById('top-diff');
+  dEl.classList.remove('hidden');
+  dEl.textContent = `DIFF: ${diff.name}`;
+
+  document.getElementById('pt-role-lbl').textContent = myRole === 'bridge' ? '相棒（機関室）：' : '相棒（操縦室）：';
+  document.getElementById('stance-rule-txt').textContent =
+    `不一致でシールド半減／変更で距離-${diff.stanceDistCost}＆熱+${diff.stanceHeatCost}`;
+  document.getElementById('bus-limit-txt').textContent = `安全上限: ${diff.busSafeLimit}電力`;
+  document.getElementById('sh-note-1').textContent = `完全一致で被害-${diff.shieldBase}（方位/周波数ズレで各半減）`;
+  document.getElementById('cool-main-desc').textContent = `熱-${diff.coolMain}（4一致100% / 3一致60% / 2以下30%）${Math.round(diff.exhaustRatio*100)}%未排熱`;
+  document.getElementById('rep-hull-desc').textContent = `船体 +${diff.repHull}% のみ（放射能霧時は半減）`;
+  document.getElementById('rep-o2-desc').textContent = `酸素 +${diff.repO2}% ＆ 持続漏れ(-${diff.o2LeakStep})修復`;
+}
+
+function resetChoices() {
+  myStance = state ? state.currentStance : 'front';
+  myMove = 'normal';
+  mySubsys = 'none';
+  myPow = emptyPow();
+  myValves = state ? [...state.valveInit] : [0, 0, 0, 0];
+  myLocked = false;
+  partnerLocked = false;
+  pendingHost = null;
+  pendingGuest = null;
+}
+
+function buildMyAction() {
+  return (myRole === 'bridge')
+    ? { kind: 'bridge', stance: myStance, move: myMove, subsys: mySubsys }
+    : { kind: 'engine', pow: { ...myPow }, freq: myFreq, valves: [...myValves] };
+}
+
+function handleMsg(msg) {
+  setNetBadge('SYNC OK', 'ok');
+
+  if ((msg.type === 'join' || msg.type === 'resync') && isHost) {
+    if (!gameStarted) {
+      startNewGame(selectedDiff, hostRole);
+    } else {
+      const gr = (hostRole === 'bridge') ? 'engine' : 'bridge';
+      const gLogs = (gr === 'bridge') ? state.logsBridge : state.logsEngine;
+      sendNet({
+        type: 'syncState',
+        role: gr,
+        core: packCoreState(state),
+        lastLog: gLogs[0] || null,
+        lastHist: state.history[state.history.length - 1] || null,
+        hl: !!pendingHost
+      });
+    }
+  } else if (msg.type === 'init' && !isHost) {
+    gameStarted = true;
+    if (joinTimer) clearInterval(joinTimer);
+    myRole = msg.role;
+    state = { ...msg.core };
+    localLogs = [];
+    localHistory = [];
+    lastAppliedTurn = 0;
+    resetChoices();
+    enterGame();
+    render();
+  } else if (msg.type === 'syncState' && !isHost) {
+    gameStarted = true;
+    if (joinTimer) clearInterval(joinTimer);
+    myRole = msg.role;
+    const prevTurn = state ? state.turn : 0;
+    state = { ...msg.core };
+    if (msg.lastLog && !localLogs.some(l => l.turn === msg.lastLog.turn)) {
+      localLogs.unshift(msg.lastLog);
+    }
+    if (msg.lastHist && !localHistory.some(h => h.turn === msg.lastHist.turn)) {
+      localHistory.push(msg.lastHist);
+    }
+    lastAppliedTurn = Math.max(lastAppliedTurn, state.turn - 1);
+    if (prevTurn !== state.turn) {
+      resetChoices();
+    }
+    partnerLocked = !!msg.hl;
+    enterGame();
+    render();
+  } else if (msg.type === 'hb' && !isHost) {
+    if (!gameStarted) {
+      sendJoinSignal();
+      return;
+    }
+    if (!state) return;
+    // ホストの方がターンが進んでいるか終了していれば自動再同期
+    if (msg.t > state.turn || (msg.go && !state.gameOver)) {
+      sendNet({ type: 'resync' });
+      return;
+    }
+    if (msg.t === state.turn) {
+      if (partnerLocked !== !!msg.hl) {
+        partnerLocked = !!msg.hl;
+        renderPartner();
+      }
+      // 自分は確定済みなのにホスト側に届いていない場合は自動再送
+      if (myLocked && !msg.gl) {
+        sendNet({ type: 'lock', locked: true, turn: state.turn, action: buildMyAction() });
+      }
+    }
+  } else if (msg.type === 'lock') {
+    if (!state || (msg.turn && msg.turn !== state.turn)) return;
+    partnerLocked = msg.locked;
+    if (isHost) {
+      pendingGuest = msg.locked ? msg.action : null;
+      resolveTurnIfReady();
+    }
+    renderPartner();
+  } else if (msg.type === 'turnResult' && !isHost) {
+    if (msg.resolvedTurn <= lastAppliedTurn) return;
+    lastAppliedTurn = msg.resolvedTurn;
+    state = { ...msg.core };
+    if (msg.newLog && !localLogs.some(l => l.turn === msg.newLog.turn)) {
+      localLogs.unshift(msg.newLog);
+    }
+    if (msg.newHist && !localHistory.some(h => h.turn === msg.newHist.turn)) {
+      localHistory.push(msg.newHist);
+    }
+    resetChoices();
+    render();
+  } else if (msg.type === 'chat') {
+    appendChat(msg.senderRole, msg.text, false);
+  }
+}
+
+function pickStance(s) { if (!myLocked && !state.gameOver) { myStance = s; render(); } }
+function pickMove(m) { if (!myLocked && !state.gameOver) { myMove = m; render(); } }
+function pickSubsys(x) { if (!myLocked && !state.gameOver) { mySubsys = x; render(); } }
+function pickFreq(f) { if (!myLocked && !state.gameOver) { myFreq = f; render(); } }
+function flipLever(i) { if (!myLocked && !state.gameOver) { myValves = applyLeverToArr(myValves, i); render(); } }
+
+function adjPow(key, delta) {
+  if (myLocked || state.gameOver) return;
+  const next = myPow[key] + delta;
+  if (next < 0) return;
+  if (delta > 0 && sumPow(myPow) >= state.maxPower) return;
+
+  const isA = ['shFront', 'shStarboard', 'coolMain', 'repHull'].includes(key);
+  if (delta > 0 && isA && state.busALocked && busALoad(myPow) >= 1) return;
+  if (delta > 0 && !isA && state.busBLocked && busBLoad(myPow) >= 1) return;
+
+  myPow[key] = next;
+  render();
+}
+
+function toggleLock() {
+  if (state.gameOver) return;
+  myLocked = !myLocked;
+  const action = buildMyAction();
+
+  if (isHost) {
+    pendingHost = myLocked ? action : null;
+    sendNet({ type: 'lock', locked: myLocked, turn: state.turn });
+    resolveTurnIfReady();
+  } else {
+    sendNet({ type: 'lock', locked: myLocked, turn: state.turn, action });
+  }
+  render();
+}
+
+function resolveTurnIfReady() {
+  if (!isHost || !pendingHost || !pendingGuest) return;
+
+  const completedTurn = state.turn;
+  const diff = DIFFS[state.diffKey];
+  const br = (pendingHost.kind === 'bridge') ? pendingHost : pendingGuest;
+  const en = (pendingHost.kind === 'engine') ? pendingHost : pendingGuest;
+
+  const mt = state.mainThreat;
+  const st = state.subThreat;
+  const prev = { dist: state.dist, hull: state.hull, o2: state.o2, heat: state.heat, stability: state.stability };
+
+  const stanceChanged = (br.stance !== state.currentStance);
+  const valveMatches = en.valves.filter((v, i) => v === state.valveTarget[i]).length;
+
+  const extBusA = (br.subsys === 'boost' ? 1 : 0) + (st.id === 'plasma_a' ? 1 : 0);
+  const extBusB = (st.id === 'plasma_b' ? 1 : 0);
+  const totBusA = busALoad(en.pow) + extBusA;
+  const totBusB = busBLoad(en.pow) + extBusB;
+  const overA = totBusA > diff.busSafeLimit;
+  const overB = totBusB > diff.busSafeLimit;
+
+  let heatDelta = 0;
+  let stabDelta = 0;
+  let extraO2Delta = 0;
+  let engineNotes = [];
+  let bridgeNotes = [];
+
+  if (overA) { heatDelta += 12; stabDelta -= 15; engineNotes.push(`BUS-A過負荷(${totBusA}/${diff.busSafeLimit}):熱+12 安定-15 次T制限`); }
+  if (overB) { heatDelta += 12; stabDelta -= 15; engineNotes.push(`BUS-B過負荷(${totBusB}/${diff.busSafeLimit}):熱+12 安定-15 次T制限`); }
+
+  let moveDist = { overdrive: 4, full: 3, normal: 2, drift: 1, evade: 1, defend: 0 }[br.move];
+  let moveHeat = { overdrive: 42, full: 26, normal: 10, drift: 0, evade: -5, defend: -16 }[br.move];
+
+  if (br.move === 'overdrive') stabDelta -= 20;
+  if (br.move === 'drift' && stanceChanged) {
+    moveDist = 0; moveHeat = 8;
+    bridgeNotes.push('ドリフト姿勢変更で失速(距離0/熱+8)');
+  }
+  if (stanceChanged && br.subsys !== 'boost') {
+    if (moveDist > 0) moveDist = Math.max(0, moveDist - diff.stanceDistCost);
+    heatDelta += diff.stanceHeatCost;
+  }
+  if (br.subsys === 'boost') {
+    moveDist += 1;
+    bridgeNotes.push('スラスター補助(距離+1/姿勢コスト0/A負荷+1)');
+  } else if (br.subsys === 'focus') {
+    moveDist = Math.max(0, moveDist - 1);
+    bridgeNotes.push('偏向集中(距離-1/一致シ1.5倍)');
+  } else if (br.subsys === 'scan') {
+    heatDelta += 6;
+    bridgeNotes.push('精密スキャン(次T確定/熱+6)');
+  } else if (br.subsys === 'vent') {
+    extraO2Delta -= 8;
+    heatDelta -= 8;
+    bridgeNotes.push('外気ベント(排熱破棄/熱-8/酸素-8/半減無効)');
+  }
+
+  if (st.id === 'grav_well' && br.move !== 'full' && br.move !== 'overdrive') {
+    moveDist -= 1;
+    bridgeNotes.push('重力井戸(+1光年)');
+  }
+  heatDelta += moveHeat;
+
+  const shMap = { front: en.pow.shFront, port: en.pow.shPort, starboard: en.pow.shStarboard, back: en.pow.shBack };
+  let mainDmg = 0;
+  let parts = [];
+
+  if (mt.id === 'calm') {
+    parts.push('主脅威なし');
+  } else {
+    let raw = mt.baseDmg;
+    if (mt.id === 'asteroid' && (br.move === 'full' || br.move === 'overdrive')) raw += 12;
+    if (br.move === 'drift') raw = Math.ceil(raw * 1.2);
+
+    const canEvadeDefendHalf = (br.subsys !== 'vent');
+    if (mt.id === 'asteroid' && br.move === 'evade' && canEvadeDefendHalf) {
+      mainDmg = 0;
+      parts.push(`小惑星(${raw})→回避0`);
+    } else {
+      const shPow = shMap[mt.dir] || 0;
+      const stanceOk = (br.stance === mt.dir);
+      const freqOk = (state.freqMap[mt.spec] === en.freq);
+
+      let mult = 1.0;
+      if (!stanceOk) mult *= 0.5;
+      if (!freqOk) mult *= 0.5;
+      if (stanceOk && freqOk && br.subsys === 'focus') mult *= 1.5;
+
+      const red = Math.floor(shPow * diff.shieldBase * mult);
+      mainDmg = Math.max(0, raw - red);
+
+      let tag = [];
+      if (!stanceOk) tag.push('姿勢ズレ');
+      if (!freqOk) tag.push('周ズレ');
+      if (stanceOk && freqOk && br.subsys === 'focus') tag.push('偏向1.5x');
+      parts.push(`${mt.name}(${raw})-シ${shPow}[${red}${tag.length ? ':' + tag.join('/') : ''}]`);
+
+      if ((mt.id === 'meteor' || mt.id === 'debris') && br.move === 'evade' && canEvadeDefendHalf) {
+        mainDmg = Math.floor(mainDmg * 0.5);
+        parts.push('回避半減');
+      }
+      if (mt.id === 'debris' && br.move !== 'evade' && br.move !== 'defend') {
+        state.o2Leak = Math.min(diff.o2LeakStep * 3, state.o2Leak + diff.o2LeakStep);
+        engineNotes.push(`酸素漏れ(+${diff.o2LeakStep}/T)`);
+      }
+      if (mt.id === 'flare') {
+        const fHeatRed = Math.floor(shPow * 12 * (stanceOk ? 1 : 0.5) * (freqOk ? 1 : 0.5));
+        const added = Math.max(0, 34 - fHeatRed);
+        heatDelta += added;
+        engineNotes.push(`フレア熱+${added}(軽減-${fHeatRed})`);
+      }
+      if (mt.id === 'emp') {
+        const eStabRed = Math.floor(shPow * 6 * (stanceOk ? 1 : 0.5) * (freqOk ? 1 : 0.5));
+        const lost = Math.max(0, 18 - eStabRed);
+        stabDelta -= lost;
+        engineNotes.push(`EMP安定-${lost}`);
+      }
+      if (br.move === 'defend' && canEvadeDefendHalf) {
+        mainDmg = Math.floor(mainDmg * 0.5);
+        parts.push('防御半減');
+      }
+      parts.push(`主被害${mainDmg}`);
+    }
+  }
+
+  let subDmg = 0;
+  if (st.id === 'shrapnel') {
+    const sPow = shMap[st.dir] || 0;
+    const sRed = Math.floor(sPow * diff.shieldBase * (br.stance === st.dir ? 1 : 0.6));
+    subDmg = Math.max(0, st.baseDmg - sRed);
+    if (br.move === 'defend' && br.subsys !== 'vent') subDmg = Math.floor(subDmg * 0.5);
+    parts.push(`+副散弾(${DIR_JP[st.dir]}:${st.baseDmg}-シ${sRed}→${subDmg})`);
+  }
+
+  const totalExtDmg = mainDmg + subDmg;
+  const formulaStr = parts.join(' ');
+
+  const carriedEx = state.pendingExhaust;
+  if (br.subsys === 'vent' || en.pow.exhaust > 0) {
+    if (en.pow.exhaust > 0) heatDelta -= en.pow.exhaust * 4;
+    if (carriedEx > 0) engineNotes.push(`未排熱${carriedEx}破棄`);
+  } else if (carriedEx > 0) {
+    heatDelta += carriedEx;
+    engineNotes.push(`未排熱逆流+${carriedEx}`);
+  }
+
+  const vEff = (valveMatches === 4) ? 1.0 : (valveMatches === 3 ? 0.6 : 0.3);
+  const coolAmt = Math.floor(en.pow.coolMain * diff.coolMain * vEff);
+  heatDelta -= coolAmt;
+  if (en.pow.coolMain > 0) engineNotes.push(`主冷却-${coolAmt}(V${valveMatches}/4)`);
+
+  const newEx = Math.ceil(coolAmt * diff.exhaustRatio);
+  state.pendingExhaust = (br.subsys === 'vent' || en.pow.exhaust > 0) ? 0 : newEx;
+
+  let hullGain = en.pow.repHull * diff.repHull;
+  if (st.id === 'rad_fog' && hullGain > 0) {
+    hullGain = Math.floor(hullGain * 0.5);
+    engineNotes.push('放射能霧で修理半減');
+  }
+  const o2Gain = en.pow.repO2 * diff.repO2;
+  if (en.pow.repO2 > 0 && state.o2Leak > 0) {
+    const fix = Math.min(state.o2Leak, en.pow.repO2 * diff.o2LeakStep);
+    state.o2Leak -= fix;
+    engineNotes.push(`漏れ-${fix}修復`);
+  }
+
+  let nextBonus = (br.move === 'defend') ? 1 : 0;
+  let clearedLocks = false;
+  if (en.pow.repSys > 0) {
+    const needFix = state.powerDamaged || state.busALocked || state.busBLocked || state.stability < 100;
+    stabDelta += en.pow.repSys * 25;
+    state.powerDamaged = false;
+    clearedLocks = true;
+    if (!needFix) {
+      nextBonus += 1;
+      engineNotes.push('予備充電+1');
+    } else {
+      engineNotes.push(`系統修復＆安定+${en.pow.repSys * 25}%`);
+    }
+  }
+
+  state.currentStance = br.stance;
+  state.dist = Math.max(0, state.dist - moveDist);
+  state.hull = Math.min(100, state.hull - totalExtDmg + hullGain);
+  const radO2 = (st.id === 'rad_fog') ? 4 : 0;
+  const totO2Loss = diff.o2Drain + state.o2Leak + radO2;
+  state.o2 = Math.min(100, state.o2 - totO2Loss + o2Gain + extraO2Delta);
+
+  if (state.stability <= 20) heatDelta += 8;
+  state.heat = Math.max(0, state.heat + heatDelta);
+  if (state.heat >= 80) stabDelta -= 10;
+  state.stability = Math.max(0, Math.min(100, state.stability + stabDelta));
+
+  let exploded = false;
+  if (state.heat >= 100) {
+    exploded = true;
+    state.hull -= 35;
+    state.heat = 65;
+    state.stability = Math.max(0, state.stability - 25);
+    state.powerDamaged = true;
+    engineNotes.push('【過熱爆発】船体-35・電力損傷・次T電力半減');
+  }
+
+  state.hull = Math.max(0, state.hull);
+  state.o2 = Math.max(0, state.o2);
+  state.prev = prev;
+
+  const sev = (exploded || totalExtDmg >= 28 || overA || overB) ? 'danger' : (totalExtDmg > 0 ? 'warn' : '');
+  const logB = {
+    turn: completedTurn, sev,
+    head: `T${completedTurn} ${formulaStr}`,
+    body: [
+      `操縦：${MOVE_JP[br.move]}/${DIR_JP[br.stance]}/${SUBSYS_JP[br.subsys]}`,
+      `距離：${prev.dist}→${state.dist}光年`,
+      bridgeNotes.join(' / '),
+      exploded ? '【衝撃検知】機関室で過熱爆発が発生' : ''
+    ].filter(Boolean).join('\n')
+  };
+  const logE = {
+    turn: completedTurn, sev,
+    head: `T${completedTurn} ${formulaStr}`,
+    body: [
+      `船${prev.hull}→${state.hull}% 酸${prev.o2}→${state.o2}% 熱${prev.heat}→${state.heat} 安${prev.stability}→${state.stability}%`,
+      `バス負荷 A:${totBusA}(外${extBusA}) B:${totBusB}(外${extBusB})`,
+      engineNotes.join(' / ')
+    ].filter(Boolean).join('\n')
+  };
+  state.logsBridge.unshift(logB);
+  state.logsEngine.unshift(logE);
+
+  const histRow = {
+    turn: completedTurn,
+    main: `${mt.name}(${DIR_JP[mt.dir]}/${mt.spec ? SPECTRA.find(s => s.id === mt.spec).code : '-'})`,
+    sub: st.name + (st.dir !== 'none' ? `(${DIR_JP[st.dir]})` : ''),
+    bridge: `${MOVE_JP[br.move]}/${DIR_JP[br.stance]}/${SUBSYS_JP[br.subsys]}`,
+    shields: `${en.pow.shFront}/${en.pow.shPort}/${en.pow.shStarboard}/${en.pow.shBack}(${FREQ_JP[en.freq]})`,
+    bus: `A:${totBusA}${overA ? '!' : ''} B:${totBusB}${overB ? '!' : ''}`,
+    cool: `冷${en.pow.coolMain}/排${en.pow.exhaust}/V${valveMatches}`,
+    rep: `${en.pow.repHull}/${en.pow.repO2}/${en.pow.repSys}`,
+    formula: formulaStr + (exploded ? '+爆発35' : ''),
+    stats: `${state.hull}/${state.o2}/${state.heat}/${state.stability}/${state.dist}`
+  };
+  state.history.push(histRow);
+
+  if (state.hull <= 0) {
+    state.gameOver = true; state.win = false;
+    state.failReason = '船体耐久が0%に達し宇宙船は大破・撃沈しました。';
+  } else if (state.o2 <= 0) {
+    state.gameOver = true; state.win = false;
+    state.failReason = '酸素残量が0%に達し全滅しました。';
+  } else if (state.dist <= 0) {
+    state.gameOver = true; state.win = true;
+    state.failReason = `Turn ${completedTurn} で目標の ${state.targetDist}光年 を突破し生還しました！`;
+  } else if (state.maxTurns > 0 && completedTurn >= state.maxTurns) {
+    state.gameOver = true; state.win = false;
+    state.failReason = `上限 ${state.maxTurns} ターン以内に帰還できませんでした（残り ${state.dist}光年）。`;
+  } else {
+    state.turn += 1;
+    state.busALocked = overA && !clearedLocks;
+    state.busBLocked = overB && !clearedLocks;
+
+    let nextMax = diff.basePower;
+    if (exploded) {
+      nextMax = Math.max(1, Math.floor(diff.basePower / 2));
+    } else {
+      if (state.heat >= 80) nextMax -= 1;
+      if (state.powerDamaged) nextMax -= 1;
+      if (state.stability < 50) nextMax -= 1;
+    }
+    state.maxPower = Math.max(1, nextMax + nextBonus);
+    state.bonusPower = nextBonus;
+
+    state.mainThreat = state.nextPrepared.main;
+    state.subThreat = state.nextPrepared.sub;
+    state.nextPrepared = generateTurnThreats(diff, false);
+    state.exactScanNext = (br.subsys === 'scan');
+
+    const vp = makeValvePuzzle();
+    state.valveInit = vp.init;
+    state.valveTarget = vp.target;
+  }
+
+  localLogs = (myRole === 'bridge') ? state.logsBridge : state.logsEngine;
+  localHistory = state.history;
+
+  const guestRole = (myRole === 'bridge') ? 'engine' : 'bridge';
+  const guestLog = (guestRole === 'bridge') ? logB : logE;
+
+  resetChoices();
+  // 軽量パケットで差分のみ送信（常に約1.5KB未満）
+  sendNet({
+    type: 'turnResult',
+    resolvedTurn: completedTurn,
+    core: packCoreState(state),
+    newLog: guestLog,
+    newHist: histRow
+  });
+  render();
+}
+
+function fmtHexIfNoisy(val, noisy) {
+  if (!noisy) return `${val}`;
+  return `0x${val.toString(16).toUpperCase().padStart(2, '0')}`;
+}
+
+function render() {
+  if (!state) return;
+  const diff = DIFFS[state.diffKey];
+  const lowO2 = (state.o2 <= 50 && !state.gameOver);
+  const magNoise = (state.subThreat.id === 'mag_noise' && !state.gameOver);
+  const remT = state.maxTurns > 0 ? Math.max(0, state.maxTurns - state.turn + 1) : null;
+
+  const rBox = document.getElementById('result-box');
+  if (state.gameOver) {
+    rBox.classList.remove('hidden');
+    rBox.classList.toggle('lose', !state.win);
+    document.getElementById('result-title').textContent = state.win ? 'MISSION COMPLETE // 生還成功' : 'MISSION FAILED // 帰還失敗';
+    document.getElementById('result-desc').textContent = state.failReason;
+    document.getElementById('hist-body').innerHTML = localHistory.map(h => `
+      <tr>
+        <td>${h.turn}</td><td>${h.main}</td><td>${h.sub}</td><td>${h.bridge}</td>
+        <td>${h.shields}</td><td>${h.bus}</td><td>${h.cool}</td><td>${h.rep}</td>
+        <td>${h.formula}</td><td>${h.stats}</td>
+      </tr>
+    `).join('');
+    document.getElementById('host-rematch').classList.toggle('hidden', !isHost);
+    document.getElementById('guest-rematch').classList.toggle('hidden', isHost);
+    if (isHost) renderRematchUI();
+  } else {
+    rBox.classList.add('hidden');
+  }
+
+  const alerts = [];
+  if (!state.gameOver) {
+    if (myRole === 'bridge') {
+      if (lowO2) alerts.push({ cls: 'err', txt: '生命維持低下検知：次T観測データにノイズ発生（機関室へ酸素確認）' });
+      if (magNoise) alerts.push({ cls: 'warn', txt: '磁気ノイズ嵐：機関室計器が暗号化中＆次T予測劣化' });
+    } else {
+      if (state.heat >= 80) alerts.push({ cls: 'err', txt: '系統過熱(80+)：使用電力-1＆毎T安定-10' });
+      if (state.powerDamaged) alerts.push({ cls: 'err', txt: '電力系統損傷：使用電力-1（系統修復で解除）' });
+      if (state.stability < 50) alerts.push({ cls: 'err', txt: `リアクター不安定(${state.stability}%)：電力-1` + (state.stability <= 20 ? '＆毎T熱+8' : '') });
+      if (state.busALocked) alerts.push({ cls: 'err', txt: 'BUS-A過負荷制限中：今TのA系統配分は最大1電力' });
+      if (state.busBLocked) alerts.push({ cls: 'err', txt: 'BUS-B過負荷制限中：今TのB系統配分は最大1電力' });
+      if (state.o2Leak > 0) alerts.push({ cls: 'err', txt: `酸素持続漏れ：毎T追加 -${state.o2Leak}%` });
+      if (lowO2) alerts.push({ cls: 'warn', txt: '低酸素障害(50%以下)：未排熱・安定度計器がHEX化' });
+      if (magNoise) alerts.push({ cls: 'warn', txt: '磁気ノイズ嵐：一部計器が16進数(HEX)表記化' });
+    }
+  }
+  const ag = document.getElementById('alert-grid');
+  if (alerts.length) {
+    ag.classList.remove('hidden');
+    ag.innerHTML = alerts.map(a => `<span class="tag ${a.cls}">${a.txt}</span>`).join('');
+  } else {
+    ag.classList.add('hidden');
+  }
+
+  const ts = document.getElementById('telemetry-strip');
+  if (myRole === 'bridge') {
+    const mt = state.mainThreat;
+    const sp = mt.spec ? SPECTRA.find(s => s.id === mt.spec) : null;
+    ts.innerHTML = `
+      <div class="t-cell ${mt.level === 'crit' ? 'danger' : (mt.level === 'warn' ? 'warn' : 'ok')}">
+        <div class="t-lbl"><span>MAIN THREAT</span><span>${DIR_JP[mt.dir]}</span></div>
+        <div class="t-val" style="font-size:14px;">${mt.name}</div>
+        <div class="t-sub">基本DMG:${mt.baseDmg} / 波形:${sp ? sp.code : 'NONE'}</div>
+      </div>
+      <div class="t-cell ${state.subThreat.kind === 'crit' ? 'danger' : (state.subThreat.kind === 'warn' ? 'warn' : 'ok')}">
+        <div class="t-lbl"><span>SUB ANOMALY</span><span>${DIR_JP[state.subThreat.dir]}</span></div>
+        <div class="t-val" style="font-size:14px;">${state.subThreat.name}</div>
+        <div class="t-sub">${state.subThreat.baseDmg ? 'DMG:' + state.subThreat.baseDmg : '環境・負荷干渉'}</div>
+      </div>
+      <div class="t-cell">
+        <div class="t-lbl"><span>REMAINING DIST</span><span>TARGET ${state.targetDist}</span></div>
+        <div class="t-val">${state.dist} 光年</div>
+        <div class="t-sub">${state.prev ? `前T:${state.prev.dist} (${state.dist - state.prev.dist})` : '初期位置'}</div>
+      </div>
+      <div class="t-cell">
+        <div class="t-lbl"><span>TURN / LIMIT</span><span>${remT !== null ? '残' + remT + 'T' : '無制限'}</span></div>
+        <div class="t-val">T${state.turn}${state.maxTurns ? '/' + state.maxTurns : ''}</div>
+        <div class="t-sub">姿勢:${DIR_JP[state.currentStance]}防御</div>
+      </div>
+    `;
+  } else {
+    const noisy = lowO2 || magNoise;
+    const used = sumPow(myPow);
+    ts.innerHTML = `
+      <div class="t-cell ${state.heat >= 80 ? 'danger' : (state.heat >= 55 ? 'warn' : 'ok')}">
+        <div class="t-lbl"><span>CORE HEAT</span><span>MAX 100</span></div>
+        <div class="t-val">${state.heat}</div>
+        <div class="t-sub">${state.prev ? `${state.prev.heat}→${state.heat}` : '初期'} / 未排熱:${fmtHexIfNoisy(state.pendingExhaust, noisy)}</div>
+      </div>
+      <div class="t-cell ${state.hull <= 35 ? 'danger' : (state.hull <= 65 ? 'warn' : 'ok')}">
+        <div class="t-lbl"><span>HULL INTEGRITY</span><span>0=撃沈</span></div>
+        <div class="t-val">${state.hull}%</div>
+        <div class="t-sub">${state.prev ? `${state.prev.hull}→${state.hull}%` : '初期'}</div>
+      </div>
+      <div class="t-cell ${state.o2 <= 35 ? 'danger' : (state.o2 <= 50 ? 'warn' : 'ok')}">
+        <div class="t-lbl"><span>OXYGEN</span><span>消費-${diff.o2Drain + state.o2Leak}</span></div>
+        <div class="t-val">${state.o2}%</div>
+        <div class="t-sub">${state.prev ? `${state.prev.o2}→${state.o2}%` : '初期'} / 漏れ:-${state.o2Leak}</div>
+      </div>
+      <div class="t-cell ${state.stability < 50 ? 'danger' : (state.stability < 75 ? 'warn' : 'ok')}">
+        <div class="t-lbl"><span>REACTOR STAB</span><span>50%未満で電力-1</span></div>
+        <div class="t-val">${fmtHexIfNoisy(state.stability, noisy)}${noisy ? '' : '%'}</div>
+        <div class="t-sub">残距離:${state.dist}光年 / T${state.turn}${state.maxTurns ? '/' + state.maxTurns : ''}</div>
+      </div>
+      <div class="t-cell ok">
+        <div class="t-lbl"><span>POWER POOL</span><span>充電+${state.bonusPower}</span></div>
+        <div class="t-val">${state.maxPower - used} / ${state.maxPower}</div>
+        <div class="t-sub">A負荷:${busALoad(myPow)} / B負荷:${busBLoad(myPow)}</div>
+      </div>
+    `;
+  }
+
+  if (myRole === 'bridge') {
+    const mt = state.mainThreat;
+    const mtTpl = MAIN_THREATS.find(x => x.id === mt.id);
+    const sp = mt.spec ? SPECTRA.find(s => s.id === mt.spec) : null;
+    document.getElementById('main-threat-box').className = 'sensor-box ' + mt.level;
+    document.getElementById('mt-name').textContent = `${mt.name} (基本DMG ${mt.baseDmg})`;
+    document.getElementById('mt-dir').textContent = `方位:${DIR_JP[mt.dir]}`;
+    document.getElementById('mt-spec').textContent = sp ? `波形:${sp.code} (${sp.label})` : '波形:NONE';
+    document.getElementById('mt-desc').textContent = mtTpl.desc;
+
+    const st = state.subThreat;
+    const stTpl = SUB_THREATS.find(x => x.id === st.id);
+    document.getElementById('sub-threat-box').className = 'sensor-box ' + st.kind;
+    document.getElementById('st-name').textContent = `副脅威：${st.name}`;
+    document.getElementById('st-badge').textContent = st.dir !== 'none' ? `方位:${DIR_JP[st.dir]}` : (st.id === 'none' ? 'SAFE' : '環境異常');
+    document.getElementById('st-desc').textContent = stTpl.desc;
+
+    const np = state.nextPrepared;
+    const nSp = np.main.spec ? SPECTRA.find(s => s.id === np.main.spec).code : 'NONE';
+    if (state.exactScanNext) {
+      document.getElementById('next-forecast').textContent =
+        `[精密確定] 主:${np.main.name}(${DIR_JP[np.main.dir]}/${nSp}) ＋ 副:${np.sub.name}`;
+    } else if (lowO2 || magNoise) {
+      document.getElementById('next-forecast').textContent =
+        `[ノイズ劣化] 主:${np.main.name} / 方位:?? / 副:${np.sub.id === 'none' ? '微弱反応' : '異常反応あり'}`;
+    } else {
+      document.getElementById('next-forecast').textContent =
+        `主:${np.main.name}(波形:${nSp}・方位未定) / 副:${np.sub.id === 'none' ? '静穏予測' : '副次異常の兆候'}`;
+    }
+
+    document.getElementById('bridge-stance-cur').textContent = `現在姿勢: ${DIR_JP[state.currentStance]}防御`;
+    DIRS.forEach(d => {
+      const btn = document.getElementById('st-' + d);
+      const sel = (myStance === d);
+      btn.classList.toggle('selected', sel);
+      btn.disabled = myLocked || state.gameOver;
+      document.getElementById('st-m-' + d).textContent = sel ? '[選択]' : '';
+      document.getElementById('st-c-' + d).textContent =
+        (d === state.currentStance) ? '現在姿勢(コスト0)' : (mySubsys === 'boost' ? '補助によりコスト0' : `変更:距離-${diff.stanceDistCost}/熱+${diff.stanceHeatCost}`);
+    });
+    Object.keys(MOVE_JP).forEach(m => {
+      const btn = document.getElementById('mv-' + m);
+      btn.classList.toggle('selected', myMove === m);
+      btn.disabled = myLocked || state.gameOver;
+    });
+    Object.keys(SUBSYS_JP).forEach(s => {
+      const btn = document.getElementById('sub-' + s);
+      btn.classList.toggle('selected', mySubsys === s);
+      btn.disabled = myLocked || state.gameOver;
+    });
+  }
+
+  if (myRole === 'engine') {
+    const used = sumPow(myPow);
+    document.getElementById('eng-pow-summary').textContent = `残電力 ${state.maxPower - used} / ${state.maxPower}`;
+
+    document.getElementById('freq-matrix-body').innerHTML = SPECTRA.map(sp => `
+      <tr>
+        <td style="color:#7dd3fc; font-weight:bold;">${sp.code}</td>
+        <td>${sp.label}</td>
+        <td style="color:#6ee7b7; font-weight:bold;">${FREQ_JP[state.freqMap[sp.id]]}</td>
+      </tr>
+    `).join('');
+    ['alpha', 'beta', 'gamma'].forEach(f => {
+      const b = document.getElementById('frq-' + f);
+      b.classList.toggle('selected', myFreq === f);
+      b.disabled = myLocked || state.gameOver;
+    });
+
+    const lA = busALoad(myPow);
+    const lB = busBLoad(myPow);
+    const limA = state.busALocked ? 1 : diff.busSafeLimit;
+    const limB = state.busBLocked ? 1 : diff.busSafeLimit;
+    const mA = document.getElementById('bus-a-meter');
+    const mB = document.getElementById('bus-b-meter');
+    mA.className = 'bus-meter bus-a' + (lA > diff.busSafeLimit ? ' over' : '');
+    mB.className = 'bus-meter bus-b' + (lB > diff.busSafeLimit ? ' over' : '');
+    document.getElementById('bus-a-val').textContent = `${lA} / ${limA}${lA > diff.busSafeLimit ? ' [過負荷]' : ''}`;
+    document.getElementById('bus-b-val').textContent = `${lB} / ${limB}${lB > diff.busSafeLimit ? ' [過負荷]' : ''}`;
+    document.getElementById('bus-a-lock-tag').textContent = state.busALocked ? '制限中(MAX 1)' : `配分:${lA}`;
+    document.getElementById('bus-b-lock-tag').textContent = state.busBLocked ? '制限中(MAX 1)' : `配分:${lB}`;
+
+    const vNames = ['A', 'B', 'C', 'D'];
+    const vMatch = myValves.filter((v, i) => v === state.valveTarget[i]).length;
+    const vEff = vMatch === 4 ? 100 : (vMatch === 3 ? 60 : 30);
+    document.getElementById('valves-cur').innerHTML = myValves.map((v, i) => `<span class="vlamp ${v ? 'on' : 'off'}">${vNames[i]}:${v ? '開' : '閉'}</span>`).join('');
+    document.getElementById('valves-tgt').innerHTML = state.valveTarget.map((v, i) => `<span class="vlamp ${v ? 'on' : 'off'}">${vNames[i]}:${v ? '開' : '閉'}</span>`).join('');
+    const vb = document.getElementById('valve-eff-badge');
+    vb.textContent = `一致${vMatch}/4 (効率${vEff}%)`;
+    vb.className = 'tag ' + (vMatch === 4 ? 'ok' : (vMatch === 3 ? 'warn' : 'err'));
+    for (let i = 0; i < 4; i++) document.getElementById('lv-' + i).disabled = myLocked || state.gameOver;
+
+    Object.keys(myPow).forEach(k => document.getElementById('p-' + k).textContent = myPow[k]);
+  }
+
+  const logEl = document.getElementById('log-list');
+  if (localLogs.length === 0) {
+    logEl.innerHTML = `<div class="log-item"><div class="log-head">SYSTEM READY</div>時間制限はありません。波形コード・方位・バス負荷・外部サブシステムの副作用を十分に相談して確定してください。</div>`;
+  } else {
+    logEl.innerHTML = localLogs.map(l => `
+      <div class="log-item ${l.sev}">
+        <div class="log-head">${l.head}</div>
+        <div>${l.body}</div>
+      </div>
+    `).join('');
+  }
+
+  renderPartner();
+  const lockBtn = document.getElementById('btn-lock');
+  lockBtn.disabled = state.gameOver;
+  if (myLocked) {
+    lockBtn.textContent = '確定を取り消す（何度でも調整可）';
+    lockBtn.className = 'danger';
+  } else {
+    lockBtn.textContent = 'この作戦で行動を確定する';
+    lockBtn.className = 'primary';
+  }
+}
+
+function renderPartner() {
+  const tag = document.getElementById('pt-status-tag');
+  if (partnerLocked) {
+    tag.textContent = '確定済み (READY)';
+    tag.className = 'tag ok';
+  } else {
+    tag.textContent = '作戦検討中...';
+    tag.className = 'tag warn';
+  }
+}
+
+function sendChat(e) {
+  e.preventDefault();
+  const inp = document.getElementById('chat-input');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  sendNet({ type: 'chat', senderRole: myRole, text: txt });
+  appendChat(myRole, txt, true);
+  inp.value = '';
+}
+
+function appendChat(role, text, isMe) {
+  const box = document.getElementById('chat-box');
+  const div = document.createElement('div');
+  div.className = 'cmsg ' + (isMe ? 'me' : 'pt');
+  div.textContent = `[${role === 'bridge' ? '操縦' : '機関'}] ${text}`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+init();
+</script>
+</body>
+</html>
